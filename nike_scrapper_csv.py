@@ -11,7 +11,7 @@ import time
 # Use ChromeDriveManager to open the webdriver to avoid version issues
 driver = webdriver.Chrome(ChromeDriverManager().install())
 # Go to the page that we want to scrape
-driver.get("https://www.nike.com/w/mens-shoes-nik1zy7ok")
+driver.get("https://www.nike.com/w/mens-shoes-nik1zy7")
 
 # Click on United States button to enter the desired country on the pop-up
 close_button = driver.find_element_by_xpath('//a[@title="United States"]')
@@ -19,11 +19,12 @@ close_button.click()
 time.sleep(2)
 
 # Go back to the page that we want to scrape
+#driver.get("https://www.nike.com/w/mens-shoes-nik1zy7ok?sort=newest")
 driver.get("https://www.nike.com/w/mens-shoes-nik1zy7ok")
 
 # # Script to scroll until infinite scroll ends to load all products on the page
 
-# SCROLL_PAUSE_TIME = 1.5
+# SCROLL_PAUSE_TIME = 1.0
 
 # while True:
 
@@ -102,13 +103,32 @@ for url in urls:
 	print("Scraping Product " + str(index))
 	index = index + 1
 	driver.get(url)
+	id_ = index
 	title = driver.find_element_by_xpath('//h1[@id="pdp_product_title"]').get_attribute('textContent')
 	category = driver.find_element_by_xpath('//h2[@class="headline-5-small pb1-sm d-sm-ib css-1ppcdci"]').get_attribute('textContent')
 	price = driver.find_element_by_xpath('//div[@class="product-price is--current-price css-1emn094"]').get_attribute('textContent')
+	price = int(re.findall('\d+', price)[0])
 	description = driver.find_element_by_xpath('//div[@class="description-preview body-2 css-1pbvugb"]/p').get_attribute('textContent')
 	description_long = driver.find_element_by_xpath('//div[@class="pi-pdpmainbody"]').get_attribute('textContent')
-	print(description_long)
 
-
-	# Go back to the previous page
-	driver.execute_script("window.history.go(-1)")
+	# Try to click review button and more button if it fails to find xpath put review as empty
+	try:
+		review_button = driver.find_element_by_xpath("(//button[@class='css-1y5ubft panel-controls'])[2]")
+		review_button.click()
+		try:
+			more_button = driver.find_element_by_xpath('//label[@for="More Reviews"]')
+			more_button.click()
+			try:
+				score = driver.find_element_by_xpath('//span[@class="TTavgRate"]').get_attribute('textContent')
+				print(score)
+			except:
+				print("no match")
+				print(url)
+		except:
+			review = ""
+			score = ""
+			pass
+	except:
+		review = ""
+		score = ""
+		pass
