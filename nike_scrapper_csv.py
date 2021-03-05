@@ -41,10 +41,10 @@ driver.get("https://www.nike.com/w/mens-shoes-nik1zy7ok")
 
 #     # Click on 'X' button to close news pop-up
 #     try:
-#     	close_button1 = driver.find_element_by_xpath('//button[@class="pre-modal-btn-close bg-transparent"]')
-#     	close_button1.click()
+#       close_button1 = driver.find_element_by_xpath('//button[@class="pre-modal-btn-close bg-transparent"]')
+#       close_button1.click()
 #     except:
-#     	pass
+#       pass
 
 #     # Calculate new scroll height and compare with last scroll height
 #     new_height = driver.execute_script("return document.body.scrollHeight")
@@ -70,65 +70,83 @@ driver.get("https://www.nike.com/w/mens-shoes-nik1zy7ok")
 
 # Click on 'X' button to close news pop-up
 try:
-	close_button1 = driver.find_element_by_xpath('//button[@class="pre-modal-btn-close bg-transparent"]')
-	close_button1.click()
+    close_button1 = driver.find_element_by_xpath('//button[@class="pre-modal-btn-close bg-transparent"]')
+    close_button1.click()
 except:
-	pass
+    pass
 
 # Getting a list of all the products on the page based on their XPATH
 wait_product = WebDriverWait(driver, 10)
 products = wait_product.until(EC.presence_of_all_elements_located((By.XPATH,
-							'//a[@class="product-card__link-overlay"]')))
+                            '//a[@class="product-card__link-overlay"]')))
 
 # Extract the URL from each of the products elements
 urls = []
 for product in products:
-	url = product.get_attribute('href')
-	urls.append(url)
+    url = product.get_attribute('href')
+    urls.append(url)
 
 # Looping through all products on the page
 index = 1
-for url in urls:
+for url in urls[4:]:
 
-	# Initialize an empty dictionary for the data
-	data_dict = {}
+    # Initialize an empty dictionary for the data
+    data_dict = {}
 
-	# Click on 'X' button to close news pop-up
-	try:
-		close_button1 = driver.find_element_by_xpath('//button[@class="pre-modal-btn-close bg-transparent"]')
-		close_button1.click()
-	except:
-		pass
+    # Click on 'X' button to close news pop-up
+    try:
+        close_button1 = driver.find_element_by_xpath('//button[@class="pre-modal-btn-close bg-transparent"]')
+        close_button1.click()
+    except:
+        pass
 
-	print("Scraping Product " + str(index))
-	index = index + 1
-	driver.get(url)
-	id_ = index
-	title = driver.find_element_by_xpath('//h1[@id="pdp_product_title"]').get_attribute('textContent')
-	category = driver.find_element_by_xpath('//h2[@class="headline-5-small pb1-sm d-sm-ib css-1ppcdci"]').get_attribute('textContent')
-	price = driver.find_element_by_xpath('//div[@class="product-price is--current-price css-1emn094"]').get_attribute('textContent')
-	price = int(re.findall('\d+', price)[0])
-	description = driver.find_element_by_xpath('//div[@class="description-preview body-2 css-1pbvugb"]/p').get_attribute('textContent')
-	description_long = driver.find_element_by_xpath('//div[@class="pi-pdpmainbody"]').get_attribute('textContent')
+    print("Scraping Product " + str(index))
+    index = index + 1
+    driver.get(url)
+    id_ = index
+    title = driver.find_element_by_xpath('//h1[@id="pdp_product_title"]').get_attribute('textContent')
+    category = driver.find_element_by_xpath('//h2[@class="headline-5-small pb1-sm d-sm-ib css-1ppcdci"]').get_attribute('textContent')
+    price = driver.find_element_by_xpath('//div[@class="product-price is--current-price css-1emn094"]').get_attribute('textContent')
+    price = int(re.findall('\d+', price)[0])
+    description = driver.find_element_by_xpath('//div[@class="description-preview body-2 css-1pbvugb"]/p').get_attribute('textContent')
+    description_long = driver.find_element_by_xpath('//div[@class="pi-pdpmainbody"]').get_attribute('textContent')
 
-	# Try to click review button and more button if it fails to find xpath put review as empty
-	try:
-		review_button = driver.find_element_by_xpath("(//button[@class='css-1y5ubft panel-controls'])[2]")
-		review_button.click()
-		try:
-			more_button = driver.find_element_by_xpath('//label[@for="More Reviews"]')
-			more_button.click()
-			try:
-				score = driver.find_element_by_xpath('//span[@class="TTavgRate"]').get_attribute('textContent')
-				print(score)
-			except:
-				print("no match")
-				print(url)
-		except:
-			review = ""
-			score = ""
-			pass
-	except:
-		review = ""
-		score = ""
-		pass
+    # Try to click review button and more button if it fails to find xpath put review as empty
+    try:
+        review_button = driver.find_element_by_xpath("(//button[@class='css-1y5ubft panel-controls'])[2]")
+        review_button.click()
+        # time.sleep(2)
+        try:
+            more_button = driver.find_element_by_xpath('//label[@for="More Reviews"]')
+            more_button.click()
+            # time.sleep(2)
+            try:
+
+                # Get average score for product
+                wait_reviews = WebDriverWait(driver, 10)
+                score = wait_reviews.until(EC.presence_of_element_located((By.XPATH,
+                            "//span[@class='TTavgRate']"))).get_attribute('textContent')
+                score = re.findall("\d+\.\d+", score)[0]
+
+                # Get the slider information
+                wait_reviews1 = WebDriverWait(driver, 10)
+                sliders = wait_reviews1.until(EC.presence_of_all_elements_located((By.XPATH,
+                            '//div[@class="TT4reviewRangeDot"]')))[:3]
+                slider_data = [slider.get_attribute('style') for slider in sliders]
+                slider_data = [float(re.search('margin-left: calc\((.+)% - 5px\);', slider).group(1)) for slider in slider_data]
+
+                size = slider_data[0]
+                comfort = slider_data[1]
+                durability = slider_data[2]
+
+                print(size, comfort, durability)
+
+            except Exception as e:
+                print(e)
+                print(url)
+        except:
+            review = ""
+            score = ""
+    except:
+        review = ""
+        score = ""
