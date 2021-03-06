@@ -3,10 +3,10 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import datetime as dt
 import time
 import csv
 import re
-import time
 
 # Use ChromeDriveManager to open the webdriver to avoid version issues
 driver = webdriver.Chrome(ChromeDriverManager().install())
@@ -21,6 +21,10 @@ time.sleep(2)
 # Go back to the page that we want to scrape
 #driver.get("https://www.nike.com/w/mens-shoes-nik1zy7ok?sort=newest")
 driver.get("https://www.nike.com/w/mens-shoes-nik1zy7ok")
+
+# Csv file we will use to store data
+csv_file = open('nike_shoes.csv', 'w', encoding='utf-8', newline='')
+writer = csv.writer(csv_file)
 
 # # Script to scroll until infinite scroll ends to load all products on the page
 
@@ -87,10 +91,10 @@ for product in products:
 
 # Looping through all products on the page
 index = 1
-for url in urls[4:]:
+for url in urls[4:8]:
 
     # Initialize an empty dictionary for the data
-    data_dict = {}
+    product_dict = {}
 
     # Click on 'X' button to close news pop-up
     try:
@@ -100,6 +104,7 @@ for url in urls[4:]:
         pass
 
     print("Scraping Product " + str(index))
+    print(url)
     index = index + 1
     driver.get(url)
     id_ = index
@@ -132,39 +137,86 @@ for url in urls[4:]:
                 slider_data = [float(re.search('margin-left: calc\((.+)% - 5px\);', slider).group(1)) for slider in slider_data]
 
                 try:
+                    # 0 Runs Small - 100 Runs Big
                     size = slider_data[0]
+                    # 0 Uncomfortable - 100 Comfortable
                     comfort = slider_data[1]
+                    # 0 Not Durable - 100 Durable
                     durability = slider_data[2]
 
                 except Exception as e:
                     size = ""
                     comfort = ""
                     durability = ""
+
+                # Getting number of reviews to know how many times to click load more reviews
                 number_reviews = driver.find_element_by_xpath('//div[@class="TTreviewCount"]').get_attribute('textContent')
-                number_reviews = float(re.findall(("\d+\.\d+|\d+"), number_reviews)[0])
+                number_reviews = float((re.findall(("\d+.\d+|\d+"), number_reviews)[0]).replace(",", ""))
                 reviews_per_click = 20
                 times = (number_reviews // reviews_per_click) + 1
-                print(times)
+                print("There are ", number_reviews, "reviews")
+                print("Clicking load more", times, "times")
                 index1 = 0
+                # Loop to click load more, using .execute_script function because button is hidden
                 while index1 < times:
                     try:
                         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                         load_more = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.XPATH,
                                                                             '//span[text()="Load More"]/..')))
-                        # load_more.click()
                         driver.execute_script("arguments[0].click();", load_more)
+                        time.sleep(0.1)
                         index1 += 1
                     except Exception as e:
                         print(type(e), e)
                         print(url)
                         break
 
-            except Exception as e:
-                print(e)
-                print(url)
+                # Getting a list of all the reviews to loop through            
+                reviews = WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.XPATH,
+                            '//div[@class="TTreview"]')))
+
+                for count, review in enumerate(reviews):
+
+                    r_title = review.find_element_by_xpath('.//div[@class="TTreviewTitle"]').get_attribute('textContent')
+                    r_raiting = float(review.find_element_by_xpath('.//meta[@itemprop="ratingValue"]').get_attribute('content'))
+                    r_body = review.find_element_by_xpath('.//div[@class="TTreviewBody"]').get_attribute('textContent')
+                    r_date = review.find_element_by_xpath('.//div[@itemprop="dateCreated"]').get_attribute('datetime')
+                    r_date = dt.datetime.strptime(r_date, '%Y-%m-%d')
+
+                    product_dict['id_'] = id_
+                    product_dict['title'] = title
+                    product_dict['category'] = category
+                    product_dict['price'] = price
+                    product_dict['description'] = description
+                    product_dict['description_long'] = description_long
+                    product_dict['r_title'] = r_title
+                    product_dict['r_raiting'] = r_raiting
+                    product_dict['r_body'] = r_body
+                    product_dict['r_date'] = r_date
+
+                    writer.writerow(product_dict.values())
+
+                print("Scrapped ", count+1, "reviews")
+
+            except:
+                review = ""
+                score = ""
         except:
             review = ""
             score = ""
     except:
         review = ""
         score = ""
+        product_dict['id_'] = id_
+        product_dict['title'] = title
+        product_dict['category'] = category
+        product_dict['price'] = price
+        product_dict['description'] = description
+        product_dict['description_long'] = description_long
+        product_dict['r_title'] = r_title
+        product_dict['r_raiting'] = r_raiting
+        product_dict['r_body'] = r_body
+        product_dict['r_date'] = r_date
+
+csv_file.close()
+driver.close()
