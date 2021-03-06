@@ -76,8 +76,7 @@ except:
     pass
 
 # Getting a list of all the products on the page based on their XPATH
-wait_product = WebDriverWait(driver, 10)
-products = wait_product.until(EC.presence_of_all_elements_located((By.XPATH,
+products = WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.XPATH,
                             '//a[@class="product-card__link-overlay"]')))
 
 # Extract the URL from each of the products elements
@@ -115,31 +114,50 @@ for url in urls[4:]:
     try:
         review_button = driver.find_element_by_xpath("(//button[@class='css-1y5ubft panel-controls'])[2]")
         review_button.click()
-        # time.sleep(2)
+        time.sleep(1)
         try:
             more_button = driver.find_element_by_xpath('//label[@for="More Reviews"]')
             more_button.click()
-            # time.sleep(2)
             try:
 
                 # Get average score for product
-                wait_reviews = WebDriverWait(driver, 10)
-                score = wait_reviews.until(EC.presence_of_element_located((By.XPATH,
+                score = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH,
                             "//span[@class='TTavgRate']"))).get_attribute('textContent')
                 score = re.findall("\d+\.\d+", score)[0]
 
                 # Get the slider information
-                wait_reviews1 = WebDriverWait(driver, 10)
-                sliders = wait_reviews1.until(EC.presence_of_all_elements_located((By.XPATH,
+                sliders = WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.XPATH,
                             '//div[@class="TT4reviewRangeDot"]')))[:3]
                 slider_data = [slider.get_attribute('style') for slider in sliders]
                 slider_data = [float(re.search('margin-left: calc\((.+)% - 5px\);', slider).group(1)) for slider in slider_data]
 
-                size = slider_data[0]
-                comfort = slider_data[1]
-                durability = slider_data[2]
+                try:
+                    size = slider_data[0]
+                    comfort = slider_data[1]
+                    durability = slider_data[2]
 
-                print(size, comfort, durability)
+                except Exception as e:
+                    size = ""
+                    comfort = ""
+                    durability = ""
+                number_reviews = driver.find_element_by_xpath('//div[@class="TTreviewCount"]').get_attribute('textContent')
+                number_reviews = float(re.findall(("\d+\.\d+|\d+"), number_reviews)[0])
+                reviews_per_click = 20
+                times = (number_reviews // reviews_per_click) + 1
+                print(times)
+                index1 = 0
+                while index1 < times:
+                    try:
+                        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                        load_more = WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.XPATH,
+                                                                            '//span[text()="Load More"]/..')))
+                        # load_more.click()
+                        driver.execute_script("arguments[0].click();", load_more)
+                        index1 += 1
+                    except Exception as e:
+                        print(type(e), e)
+                        print(url)
+                        break
 
             except Exception as e:
                 print(e)
