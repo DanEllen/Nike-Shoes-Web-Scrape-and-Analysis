@@ -8,122 +8,121 @@ import time
 import csv
 import re
 
-# Use ChromeDriveManager to open the webdriver to avoid version issues
-driver = webdriver.Chrome(ChromeDriverManager().install())
-# Go to the page that we want to scrape
-driver.get("https://www.nike.com/w/mens-shoes-nik1zy7ok?sort=newest")
+def nike_scrapper(url, gender, csv_file_name):
 
-# Click on United States button to enter the desired country on the pop-up
-close_button = driver.find_element_by_xpath('//a[@title="United States"]')
-close_button.click()
-time.sleep(2)
+    # Use ChromeDriveManager to open the webdriver to avoid version issues
+    driver = webdriver.Chrome(ChromeDriverManager().install())
+    # Go to the page that we want to scrape
+    driver.get(url)
 
-# Go back to the page that we want to scrape
-# driver.get("https://www.nike.com/w/mens-shoes-nik1zy7ok?sort=newest")
-driver.get("https://www.nike.com/w/mens-shoes-nik1zy7ok")
+    # Click on United States button to enter the desired country on the pop-up
+    close_button = driver.find_element_by_xpath('//a[@title="United States"]')
+    close_button.click()
+    time.sleep(2)
 
-# Csv file we will use to store data
-file_name = 'nike_shoes_mens.csv'
-csv_file = open(file_name, 'w', encoding='utf-8', newline='')
-writer = csv.writer(csv_file)
+    # Go back to the page that we want to scrape
+    # driver.get("https://www.nike.com/w/mens-shoes-nik1zy7ok?sort=newest")
+    driver.get(url)
 
-# Initialize an empty dictionary for the data
-product_dict = {}
+    # Csv file we will use to store data
+    file_name = csv_file_name
+    csv_file = open(file_name, 'w', encoding='utf-8', newline='')
+    writer = csv.writer(csv_file)
 
-# Write keys at the top of the file
-product_dict['id_'] = ""
-product_dict['title'] = ""
-product_dict['url'] = ""
-product_dict['category'] = ""
-product_dict['price'] = ""
-product_dict['description'] = ""
-product_dict['description_long'] = ""
-product_dict['n_reviews'] = ""
-product_dict['score'] = ""
-product_dict['size'] = ""
-product_dict['comfort'] = ""
-product_dict['durability'] = ""
-product_dict['r_title'] = ""
-product_dict['r_raiting'] = ""
-product_dict['r_body'] = ""
-product_dict['r_date'] = ""
-writer.writerow(product_dict.keys())
+    # Initialize an empty dictionary for the data
+    product_dict = {}
 
-# Script to scroll until infinite scroll ends to load all products on the page
-SCROLL_PAUSE_TIME = 1.0
+    # Write keys at the top of the file
+    product_dict['id_'] = ""
+    product_dict['gender'] = ""
+    product_dict['title'] = ""
+    product_dict['url'] = ""
+    product_dict['category'] = ""
+    product_dict['price'] = ""
+    product_dict['description'] = ""
+    product_dict['description_long'] = ""
+    product_dict['n_reviews'] = ""
+    product_dict['score'] = ""
+    product_dict['size'] = ""
+    product_dict['comfort'] = ""
+    product_dict['durability'] = ""
+    product_dict['r_title'] = ""
+    product_dict['r_raiting'] = ""
+    product_dict['r_body'] = ""
+    product_dict['r_date'] = ""
+    writer.writerow(product_dict.keys())
 
-while True:
+    # Script to scroll until infinite scroll ends to load all products on the page
+    SCROLL_PAUSE_TIME = 1.0
 
-    # Get scroll height
-    ### This is the difference. Moving this *inside* the loop
-    ### means that it checks if scrollTo is still scrolling 
-    last_height = driver.execute_script("return document.body.scrollHeight")
+    while True:
 
-    # Scroll down to bottom
-    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        # Get scroll height
+        ### This is the difference. Moving this *inside* the loop
+        ### means that it checks if scrollTo is still scrolling 
+        last_height = driver.execute_script("return document.body.scrollHeight")
 
-    # Wait to load page
-    time.sleep(SCROLL_PAUSE_TIME)
-
-    # Click on 'X' button to close news pop-up
-    try:
-      close_button1 = driver.find_element_by_xpath('//button[@class="pre-modal-btn-close bg-transparent"]')
-      close_button1.click()
-    except:
-      pass
-
-    # Calculate new scroll height and compare with last scroll height
-    new_height = driver.execute_script("return document.body.scrollHeight")
-    if new_height == last_height:
-
-        # try again (can be removed)
+        # Scroll down to bottom
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
         # Wait to load page
         time.sleep(SCROLL_PAUSE_TIME)
 
+        # Click on 'X' button to close news pop-up
+        try:
+          close_button1 = driver.find_element_by_xpath('//button[@class="pre-modal-btn-close bg-transparent"]')
+          close_button1.click()
+        except:
+          pass
+
         # Calculate new scroll height and compare with last scroll height
         new_height = driver.execute_script("return document.body.scrollHeight")
-
-        # check if the page height has remained the same
         if new_height == last_height:
-            # if so, you are done
-            break
-        # if not, move on to the next loop
-        else:
-            last_height = new_height
-            continue
 
-# Click on 'X' button to close news pop-up
-try:
-    close_button1 = driver.find_element_by_xpath('//button[@class="pre-modal-btn-close bg-transparent"]')
-    close_button1.click()
-except:
-    pass
+            # try again (can be removed)
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
-# Getting a list of all the products on the page based on their XPATH
-products = WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.XPATH,
-                            '//a[@class="product-card__link-overlay"]')))
+            # Wait to load page
+            time.sleep(SCROLL_PAUSE_TIME)
 
-# Extract the URL from each of the products elements
-urls = []
-for product in products:
-    url = product.get_attribute('href')
-    urls.append(url)
+            # Calculate new scroll height and compare with last scroll height
+            new_height = driver.execute_script("return document.body.scrollHeight")
 
-total_products = driver.find_element_by_xpath('//span[@class="wall-header__item_count"]').get_attribute('textContent')
-total_products = re.findall('\d+', total_products)
-print("There are ", total_products, "products")
-print('We are scraping ', len(urls), "product urls")
+            # check if the page height has remained the same
+            if new_height == last_height:
+                # if so, you are done
+                break
+            # if not, move on to the next loop
+            else:
+                last_height = new_height
+                continue
 
-# Looping through all products on the page
-index = 1
-# urls = ['https://www.nike.com/t/air-force-1-07-mens-shoe-5QFp5Z/CW2288-111']
-# urls = ['https://www.nike.com/t/downshifter-10-mens-running-shoe-372ZB6/CI9981-004']
+    # Click on 'X' button to close news pop-up
+    try:
+        close_button1 = driver.find_element_by_xpath('//button[@class="pre-modal-btn-close bg-transparent"]')
+        close_button1.click()
+    except:
+        pass
 
-try:
+    # Getting a list of all the products on the page based on their XPATH
+    products = WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.XPATH,
+                                '//a[@class="product-card__link-overlay"]')))
+
+    # Extract the URL from each of the products elements
+    urls = []
+    for product in products:
+        url = product.get_attribute('href')
+        urls.append(url)
+
+    total_products = driver.find_element_by_xpath('//span[@class="wall-header__item_count"]').get_attribute('textContent')
+    total_products = re.findall('\d+', total_products)
+    print("There are ", total_products, "products")
+    print('We are scraping ', len(urls), "product urls")
+
+    # Looping through all products on the page
+    index = 1
+
     for url in urls:
-
         # Click on 'X' button to close news pop-up
         try:
             close_button1 = driver.find_element_by_xpath('//button[@class="pre-modal-btn-close bg-transparent"]')
@@ -133,9 +132,12 @@ try:
 
         print("Scraping Product " + str(index))
         print(url)
+        try:
+            driver.get(url)
+        except:
+            continue
         id_ = index
         index = index + 1
-        driver.get(url)
         try:
             title = driver.find_element_by_xpath('//h1[@id="pdp_product_title"]').get_attribute('textContent')
             category = driver.find_element_by_xpath('//h2[@class="headline-5-small pb1-sm d-sm-ib css-1ppcdci"]').get_attribute('textContent')
@@ -220,7 +222,7 @@ try:
                             continue
 
                     # Getting a list of all the reviews to loop through            
-                    reviews = WebDriverWait(driver, 5).until(EC.presence_of_all_elements_located((By.XPATH,
+                    reviews = WebDriverWait(driver, 3).until(EC.presence_of_all_elements_located((By.XPATH,
                                 '//div[@class="TTreview"]')))
 
                     for count, review in enumerate(reviews):
@@ -232,6 +234,7 @@ try:
                         r_date = datetime.strptime(r_date, '%Y-%m-%d')
 
                         product_dict['id_'] = id_
+                        product_dict['gender'] = gender
                         product_dict['title'] = title
                         product_dict['url'] = url
                         product_dict['category'] = category
@@ -247,7 +250,6 @@ try:
                         product_dict['r_raiting'] = r_raiting
                         product_dict['r_body'] = r_body
                         product_dict['r_date'] = r_date
-
                         writer.writerow(product_dict.values())
 
                     print("Scrapped ", count+1, "reviews")
@@ -258,6 +260,7 @@ try:
             except:
                 # If there are no reviws save all the product info but keep the review fields blank
                 product_dict['id_'] = id_
+                product_dict['gender'] = gender
                 product_dict['title'] = title
                 product_dict['url'] = url
                 product_dict['category'] = category
@@ -277,13 +280,14 @@ try:
         except:
             # If there are no reviws save all the product info but keep the review fields blank
             product_dict['id_'] = id_
+            product_dict['gender'] = gender
             product_dict['title'] = title
             product_dict['url'] = url
             product_dict['category'] = category
             product_dict['price'] = price
             product_dict['description'] = description
             product_dict['description_long'] = description_long
-
+            product_dict['n_reviews'] = ""
             product_dict['score'] = ""
             product_dict['size'] = ""
             product_dict['comfort'] = ""
@@ -293,8 +297,10 @@ try:
             product_dict['r_body'] = ""
             product_dict['r_date'] = ""
             writer.writerow(product_dict.values())
-except:
-    pass
 
-csv_file.close()
-driver.close()
+    csv_file.close()
+    driver.close()
+
+nike_scrapper("https://www.nike.com/w/mens-shoes-nik1zy7ok?sort=newest", "men", "nike_shoes_men.csv")
+
+nike_scrapper("https://www.nike.com/w/womens-shoes-5e1x6zy7ok?sort=newest", "woman", "nike_shoes_woman.csv")
