@@ -53,7 +53,7 @@ def nike_scrapper(url, gender, csv_file_name):
     writer.writerow(product_dict.keys())
 
     # Script to scroll until infinite scroll ends to load all products on the page
-    SCROLL_PAUSE_TIME = 1.0
+    SCROLL_PAUSE_TIME = 2.0
 
     while True:
 
@@ -114,6 +114,7 @@ def nike_scrapper(url, gender, csv_file_name):
         url = product.get_attribute('href')
         urls.append(url)
 
+    # Get the total number of product and print to compare with the number of URLs
     total_products = driver.find_element_by_xpath('//span[@class="wall-header__item_count"]').get_attribute('textContent')
     total_products = re.findall('\d+', total_products)
     print("There are ", total_products, "products")
@@ -301,6 +302,6 @@ def nike_scrapper(url, gender, csv_file_name):
     csv_file.close()
     driver.close()
 
-nike_scrapper("https://www.nike.com/w/mens-shoes-nik1zy7ok?sort=newest", "men", "nike_shoes_men.csv")
+# nike_scrapper("https://www.nike.com/w/mens-shoes-nik1zy7ok?sort=newest", "men", "nike_shoes_men.csv")
 
 nike_scrapper("https://www.nike.com/w/womens-shoes-5e1x6zy7ok?sort=newest", "woman", "nike_shoes_woman.csv")
